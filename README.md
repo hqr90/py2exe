@@ -4,11 +4,6 @@
 
 O **Py to Exe Converter** é uma aplicação gráfica desenvolvida em Python utilizando a biblioteca **PyQt5**. Ela permite que você converta scripts Python (`.py`) em executáveis (`.exe`) de forma simples e intuitiva. Além disso, oferece opções para adicionar ícones personalizados e configurar o ambiente virtual (`.venv`) do script alvo, garantindo que todas as dependências sejam incluídas no executável final.
 
-### 🛠️ **Dica Legal**
-Uma dica interessante é transformar o próprio **Py to Exe Converter** em um executável. Isso facilita a distribuição e utilização da ferramenta sem a necessidade de ter um ambiente Python configurado no sistema do usuário. Para isso, você pode usar o próprio conversor para empacotar-se como um executável, criando uma espécie de "bootstraper" para a aplicação.
-
-Além disso, o **Py to Exe Converter** está disponível como um ambiente virtual (`.venv`) no GitHub com todos os requisitos preenchidos, permitindo uma configuração rápida e fácil para novos usuários.
-
 ## 🚀 **Recursos Principais**
 
 - **Interface Gráfica Intuitiva:** Facilita a seleção do script Python, ícone personalizado e diretório de saída.
