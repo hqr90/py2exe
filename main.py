@@ -34,7 +34,11 @@ def convert_to_ico(image_path: str) -> str:
     try:
         with Image.open(image_path) as img:
             # Ajusta o tamanho para 256x256 para melhor compatibilidade
-            img = img.resize((256, 256), Image.ANTIALIAS)
+            if hasattr(Image, 'Resampling'):
+                resample = Image.Resampling.LANCZOS
+            else:
+                resample = Image.LANCZOS  # Para versões anteriores, caso necessário
+            img = img.resize((256, 256), resample)
             ico_path = os.path.splitext(image_path)[0] + '.ico'
             img.save(ico_path, format='ICO')
             print(f"Imagem convertida para ícone: '{ico_path}'")
@@ -142,6 +146,17 @@ class ProgressScreen(QWidget):
         # Adiciona um QLabel com um GIF animado de carregamento
         self.spinner_label = QLabel(self)
         self.spinner_label.setAlignment(Qt.AlignCenter)
+        gif_path = resource_path("spinner.gif")  # Usar resource_path para resolver o caminho
+
+        if os.path.isfile(gif_path):
+            self.movie = QMovie(gif_path)
+            self.spinner_label.setMovie(self.movie)
+            self.movie.start()
+        else:
+            print(f"Arquivo de GIF '{gif_path}' não encontrado. Usando texto como fallback.")
+            self.spinner_label.setText("Processando...")
+            self.spinner_label.setAlignment(Qt.AlignCenter)
+            self.spinner_label.setStyleSheet("font-size: 20px;")
 
         layout.addStretch()
         layout.addWidget(self.message_label)
@@ -343,7 +358,7 @@ class ProgressScreen(QWidget):
             self.movie.start()
         else:
             print(f"Arquivo de GIF '{gif_path}' não encontrado. Usando texto como fallback.")
-            self.spinner_label.setText("")
+            self.spinner_label.setText("Processando...")
             self.spinner_label.setAlignment(Qt.AlignCenter)
             self.spinner_label.setStyleSheet("font-size: 20px;")
 
