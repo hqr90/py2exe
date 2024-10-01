@@ -62,7 +62,6 @@ Antes de começar, certifique-se de ter os seguintes pré-requisitos instalados:
    ```
    py-to-exe-converter/
    ├── icone_app.ico
-   ├── spinner.gif
    ├── main.py
    ├── README.md
    └── requirements.txt
