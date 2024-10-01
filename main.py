@@ -21,8 +21,9 @@ def resource_path(relative_path):
 def convert_to_ico(image_path: str) -> str:
     image_path = os.path.normpath(image_path)
     _, ext = os.path.splitext(image_path)
+    print(f"Tentando converter o arquivo: {image_path} com extensão: {ext}")  # Depuração
     if ext.lower() == '.ico':
-        # Se já for um arquivo .ico, retorna o caminho diretamente
+        print("Arquivo já é .ico. Retornando o caminho original.")
         return image_path
     # Verifica se o arquivo existe
     if not os.path.isfile(image_path):
@@ -37,7 +38,7 @@ def convert_to_ico(image_path: str) -> str:
             else:
                 resample = Image.LANCZOS  # Para versões anteriores, caso necessário
             img = img.resize((256, 256), resample)
-            ico_path = os.path.splitext(image_path)[0] + '.ico'
+            ico_path = os.path.splitext(image_path)[0] + '_converted.ico'
             img.save(ico_path, format='ICO')
             print(f"Imagem convertida para ícone: '{ico_path}'")
             return ico_path
@@ -57,13 +58,15 @@ def criar_exe(nome: str, path: str, ico: str, output_dir: str, prompt: bool = Fa
         if not os.path.isfile(ico):
             raise FileNotFoundError(f"Arquivo de ícone '{ico}' não encontrado.")
         _, ext = os.path.splitext(ico)
+        print(f"Extensão do arquivo de ícone: {ext}")  # Depuração
         if ext.lower() != '.ico':
             novo_ico = convert_to_ico(ico)
             if novo_ico:
                 ico = novo_ico
             else:
                 raise ValueError("Não foi possível converter a imagem para ícone.")
-        # Se já for .ico, não faz nada
+        else:
+            print("Arquivo de ícone já está no formato .ico. Não será necessário converter.")
 
     # Verifica se o diretório de saída existe, caso contrário, cria
     output_dir = os.path.abspath(output_dir)
@@ -127,6 +130,7 @@ def criar_exe(nome: str, path: str, ico: str, output_dir: str, prompt: bool = Fa
 
         # Executa o comando
         try:
+            print(f"Executando comando: {' '.join(comando)}")  # Depuração
             result = subprocess.run(
                 comando,
                 check=True,
