@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QMovie
 
+# Importação explícita do ruamel.yaml para garantir que PyInstaller o inclua
+import ruamel.yaml  # Adicionado para resolver o ModuleNotFoundError
 
 def resource_path(relative_path):
     """Obter o caminho absoluto para recursos, funciona para desenvolvimento e para executáveis PyInstaller."""
@@ -88,6 +90,7 @@ def criar_exe(nome: str, path: str, ico: str, output_dir: str, prompt: bool = Fa
             '--workpath', os.path.join(temp_dir, 'build'),  # Define o diretório de build temporário
             '--specpath', temp_dir,  # Define o diretório de spec temporário
             f'--name={nome}',
+            '--hidden-import=ruamel.yaml'  # Garante que ruamel.yaml seja incluído
         ]
 
         if ico:
