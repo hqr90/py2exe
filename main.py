@@ -8,10 +8,7 @@ from PyQt5.QtWidgets import (
     QFileDialog, QVBoxLayout, QHBoxLayout, QMessageBox, QStackedLayout
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QIcon, QMovie
-
-# Importação explícita do ruamel.yaml para garantir que PyInstaller o inclua
-import ruamel.yaml  # Adicionado para resolver o ModuleNotFoundError
+from PyQt5.QtGui import QIcon
 
 def resource_path(relative_path):
     """Obter o caminho absoluto para recursos, funciona para desenvolvimento e para executáveis PyInstaller."""
@@ -20,7 +17,6 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
-
 
 def convert_to_ico(image_path: str) -> str:
     image_path = os.path.normpath(image_path)
@@ -48,7 +44,6 @@ def convert_to_ico(image_path: str) -> str:
     except Exception as e:
         print(f"Erro ao converter a imagem para ícone: {e}")
         return ''
-
 
 def criar_exe(nome: str, path: str, ico: str, output_dir: str, prompt: bool = False):
     path = os.path.abspath(path)
@@ -80,17 +75,34 @@ def criar_exe(nome: str, path: str, ico: str, output_dir: str, prompt: bool = Fa
         except Exception as e:
             raise OSError(f"Não foi possível criar o diretório de saída: {e}")
 
+    # Tenta encontrar o interpretador Python do venv no mesmo diretório do arquivo .py
+    script_dir = os.path.dirname(path)
+    venv_path = os.path.join(script_dir, '.venv')
+    if os.path.isdir(venv_path):
+        # Se o venv existe, adiciona o site-packages do venv ao PyInstaller
+        if sys.platform == 'win32':
+            venv_python = os.path.join(venv_path, 'Scripts', 'python.exe')
+            venv_site_packages = os.path.join(venv_path, 'Lib', 'site-packages')
+        else:
+            venv_python = os.path.join(venv_path, 'bin', 'python')
+            venv_site_packages = os.path.join(venv_path, 'lib', f'python{sys.version_info.major}.{sys.version_info.minor}', 'site-packages')
+        if not os.path.isfile(venv_python):
+            raise FileNotFoundError("Interpretador Python não encontrado no ambiente virtual padrão.")
+    else:
+        # Se não encontrar a pasta .venv, usa o interpretador atual
+        venv_python = sys.executable
+        venv_site_packages = None
+
     # Cria um diretório temporário para a build e spec
     with tempfile.TemporaryDirectory() as temp_dir:
         comando = [
-            sys.executable,
+            sys.executable,  # Use o interpretador atual que tem o PyInstaller instalado
             '-m', 'PyInstaller',
             '--onefile',
             '--distpath', output_dir,  # Define o diretório de saída
             '--workpath', os.path.join(temp_dir, 'build'),  # Define o diretório de build temporário
             '--specpath', temp_dir,  # Define o diretório de spec temporário
             f'--name={nome}',
-            '--hidden-import=ruamel.yaml'  # Garante que ruamel.yaml seja incluído
         ]
 
         if ico:
@@ -99,18 +111,42 @@ def criar_exe(nome: str, path: str, ico: str, output_dir: str, prompt: bool = Fa
         if not prompt:
             comando.append('--noconsole')
 
+        # Se o venv foi encontrado, adiciona o site-packages do venv ao PATH e ao comando
+        env = os.environ.copy()
+        if venv_site_packages and os.path.isdir(venv_site_packages):
+            env['PYTHONPATH'] = venv_site_packages + os.pathsep + env.get('PYTHONPATH', '')
+            # Use o hook de runtime para adicionar o site-packages do venv
+            runtime_hook_path = os.path.join(temp_dir, 'venv_hook.py')
+            with open(runtime_hook_path, 'w') as f:
+                f.write(f"import sys\nsys.path.append(r'{venv_site_packages}')\n")
+            comando.append(f'--runtime-hook={runtime_hook_path}')
+        else:
+            env = None  # Use o ambiente padrão
+
         comando.append(path)
 
         # Executa o comando
-        result = subprocess.run(
-            comando,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        print(f"Executável '{nome}.exe' criado com sucesso em '{output_dir}'.")
+        try:
+            result = subprocess.run(
+                comando,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env
+            )
+            print(f"Executável '{nome}.exe' criado com sucesso em '{output_dir}'.")
+        except subprocess.CalledProcessError as e:
+            print(f"Erro ao criar o executável: {e.stderr}")
+            raise e
 
+def select_venv_python():
+    options = QFileDialog.Options()
+    options |= QFileDialog.DontUseNativeDialog
+    fileName, _ = QFileDialog.getOpenFileName(
+        None, "Selecionar o interpretador Python do venv", "",
+        "Python Executable (python.exe);;All Files (*)", options=options)
+    return fileName if fileName else None
 
 class Worker(QThread):
     finished = pyqtSignal(str)
@@ -131,14 +167,13 @@ class Worker(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
-
 class ProgressScreen(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Convertendo .py para .exe")
+        self.setWindowTitle("Convertendo de .py para .exe")
         self.setFixedSize(400, 300)  # Define a resolução da tela de progresso para 400x300
         layout = QVBoxLayout()
 
@@ -146,28 +181,11 @@ class ProgressScreen(QWidget):
         self.message_label.setAlignment(Qt.AlignCenter)
         self.message_label.setStyleSheet("font-size: 24px;")
 
-        # Adiciona um QLabel com um GIF animado de carregamento
-        self.spinner_label = QLabel(self)
-        self.spinner_label.setAlignment(Qt.AlignCenter)
-        gif_path = resource_path("spinner.gif")  # Usar resource_path para resolver o caminho
-
-        if os.path.isfile(gif_path):
-            self.movie = QMovie(gif_path)
-            self.spinner_label.setMovie(self.movie)
-            self.movie.start()
-        else:
-            print(f"Arquivo de GIF '{gif_path}' não encontrado. Usando texto como fallback.")
-            self.spinner_label.setText("Processando...")
-            self.spinner_label.setAlignment(Qt.AlignCenter)
-            self.spinner_label.setStyleSheet("font-size: 20px;")
-
         layout.addStretch()
         layout.addWidget(self.message_label)
-        layout.addWidget(self.spinner_label)
         layout.addStretch()
 
         self.setLayout(layout)
-
 
 class App(QWidget):
     def __init__(self):
@@ -334,64 +352,6 @@ class App(QWidget):
 
     def parent_layout(self):
         return self.layout()
-
-
-class ProgressScreen(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        self.setWindowTitle("Convertendo .py para .exe")
-        self.setFixedSize(400, 300)  # Define a resolução da tela de progresso para 400x300
-        layout = QVBoxLayout()
-
-        self.message_label = QLabel("Convertendo .py para .exe...", self)
-        self.message_label.setAlignment(Qt.AlignCenter)
-        self.message_label.setStyleSheet("font-size: 24px;")
-
-        # Adiciona um QLabel com um GIF animado de carregamento
-        self.spinner_label = QLabel(self)
-        self.spinner_label.setAlignment(Qt.AlignCenter)
-        gif_path = resource_path("spinner.gif")  # Usar resource_path para resolver o caminho
-
-        if os.path.isfile(gif_path):
-            self.movie = QMovie(gif_path)
-            self.spinner_label.setMovie(self.movie)
-            self.movie.start()
-        else:
-            print(f"Arquivo de GIF '{gif_path}' não encontrado. Usando texto como fallback.")
-            self.spinner_label.setText("Processando...")
-            self.spinner_label.setAlignment(Qt.AlignCenter)
-            self.spinner_label.setStyleSheet("font-size: 20px;")
-
-        layout.addStretch()
-        layout.addWidget(self.message_label)
-        layout.addWidget(self.spinner_label)
-        layout.addStretch()
-
-        self.setLayout(layout)
-
-
-class Worker(QThread):
-    finished = pyqtSignal(str)
-    error = pyqtSignal(str)
-
-    def __init__(self, nome, path, ico, output_dir, prompt):
-        super().__init__()
-        self.nome = nome
-        self.path = path
-        self.ico = ico
-        self.output_dir = output_dir
-        self.prompt = prompt
-
-    def run(self):
-        try:
-            criar_exe(self.nome, self.path, self.ico, self.output_dir, self.prompt)
-            self.finished.emit(f"Executável '{self.nome}.exe' criado com sucesso em:\n{self.output_dir}")
-        except Exception as e:
-            self.error.emit(str(e))
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
