@@ -19,21 +19,7 @@ Além disso, o **Py to Exe Converter** está disponível como um ambiente virtua
 
 ## 🛠️ **Pré-requisitos**
 
-Antes de utilizar o **Py to Exe Converter**, certifique-se de que os seguintes pré-requisitos estão atendidos:
-
-1. **Python 3.6 ou Superior:** [Download do Python](https://www.python.org/downloads/)
-2. **Bibliotecas Python Necessárias:**
-   - **PyQt5**
-   - **Pillow**
-   - **PyInstaller**
-   
-   Você pode instalar essas bibliotecas usando o `pip`:
-
-   ```bash
-   pip install PyQt5 Pillow PyInstaller
-   ```
-
-3. **Ambiente Virtual (Opcional):** Se o seu script Python utiliza um ambiente virtual com dependências específicas, certifique-se de que ele está configurado corretamente.
+Antes de utilizar o **Py to Exe Converter**, saiba que é obrigatório que o arquivo Python (`.py`) que será convertido esteja dentro de um ambiente virtual (`.venv`) configurado corretamente com todas as dependências necessárias. conforme estabelecido na estrutura abaixo.
 
 ## 📦 **Estrutura de Diretórios**
 
