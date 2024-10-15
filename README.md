@@ -24,7 +24,7 @@ Antes de começar, certifique-se de ter os seguintes pré-requisitos instalados:
 Para instalar o pacote, você pode usar o pip:
 
 ```
-pip install py2exe
+pip install simplepy2exe
 ```
 
 ## Utilização
